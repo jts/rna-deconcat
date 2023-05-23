@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use bio::io::fastq;
-use bio::pattern_matching::myers::Myers;
+use bio::pattern_matching::myers::long::Myers;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -35,9 +35,9 @@ fn main() {
     }
 }
 
-fn filter_overlaps(occ: Vec<(usize, usize, u8)>) -> Vec<(usize, usize, u8)> {
+fn filter_overlaps(occ: Vec<(usize, usize, usize)>) -> Vec<(usize, usize, usize)> {
 
-    let mut out = Vec::<(usize, usize, u8)>::new();
+    let mut out = Vec::<(usize, usize, usize)>::new();
     // lazy naive method n^2, discard any hits that overlap a hit with a lower edit distance
     for a in occ {
 
@@ -114,8 +114,8 @@ fn split_reads(input_fastq: &str) {
                        [ "GTGACAAGAAAGTTGTCGGTGTCTTTGTGACTTGCCTGTCGCTCTATCTTCAGAGGAGAGTCCGCCGCCCGCAAG", 
                          "GCAATATCAGCACCAACAGAAAATCATGTAACGATCATGGAATCCGAGGATTC" ] ];
 
-    let mut strand_pattern = [ (Myers::<u128>::new(strand_seq[0][0].bytes()), Myers::<u128>::new(strand_seq[0][1].bytes())),
-                               (Myers::<u128>::new(strand_seq[1][0].bytes()), Myers::<u128>::new(strand_seq[1][1].bytes())) ];
+    let mut strand_pattern = [ (Myers::<u64>::new(strand_seq[0][0].bytes()), Myers::<u64>::new(strand_seq[0][1].bytes())),
+                               (Myers::<u64>::new(strand_seq[1][0].bytes()), Myers::<u64>::new(strand_seq[1][1].bytes())) ];
     
     for r in reader.records() {
         if let Ok(record) = r {
