@@ -62,7 +62,7 @@ fn filter_overlaps(occ: Vec<(usize, usize, usize)>) -> Vec<(usize, usize, usize)
     return out;
 }
 
-fn display_matches(patterns: &mut [(Myers<u128>, Myers<u128>); 2], strand_seq: &[[&str; 2]; 2], seq: &[u8], max_ed: u8) -> () {
+fn display_matches(patterns: &mut [(Myers<u64>, Myers<u64>); 2], strand_seq: &[[&str; 2]; 2], seq: &[u8], max_ed: usize) -> () {
 
     let mut match_strings = Vec::new();
     for si in 0..=1 {
