@@ -62,15 +62,14 @@ fn filter_overlaps(occ: Vec<(usize, usize, u8)>) -> Vec<(usize, usize, u8)> {
     return out;
 }
 
-/*
-fn display_matches(patterns: [(Myers<u128>, Myers<u128>); 2], seq: &[u8]) -> () {
+fn display_matches(patterns: &mut [(Myers<u128>, Myers<u128>); 2], strand_seq: &[[&str; 2]; 2], seq: &[u8], max_ed: u8) -> () {
 
     let mut match_strings = Vec::new();
     for si in 0..=1 {
         let mut strand_matches = vec![' '; seq.len()];
 
-        let occ_prefix: Vec<_> = filter_overlaps(strand_pattern[si].0.find_all(seq, max_ed).collect());
-        let occ_suffix: Vec<_> = filter_overlaps(strand_pattern[si].1.find_all(seq, max_ed).collect());
+        let occ_prefix: Vec<_> = filter_overlaps(patterns[si].0.find_all(seq, max_ed).collect());
+        let occ_suffix: Vec<_> = filter_overlaps(patterns[si].1.find_all(seq, max_ed).collect());
 
         for hit in &occ_prefix {
 
@@ -101,13 +100,13 @@ fn display_matches(patterns: [(Myers<u128>, Myers<u128>); 2], seq: &[u8]) -> () 
         println!("S2: {}", &match_strings[1][i..m]);
         println!("");
     }
-
 }
-*/
 
 fn split_reads(input_fastq: &str) {
     let reader = fastq::Reader::from_file(input_fastq).expect("Could not open input fastq");
     let max_ed = 14;
+    let display = false;
+
 
     let strand_seq = [ [ "GAATCCTCGGATTCCATGATCGTTACATGATTTTCTGTTGGTGCTGATATTGC", 
                          "CTTGCGGGCGGCGGACTCTCCTCTGAAGATAGAGCGACAGGCAAGTCACAAAGACACCGACAACTTTCTTGTCAC" ],
@@ -120,32 +119,40 @@ fn split_reads(input_fastq: &str) {
     for r in reader.records() {
         if let Ok(record) = r {
             let seq = record.seq();
+            let qual = record.qual();
 
-            let mut subs = Vec::new();
+            if display {
+                display_matches(&mut strand_pattern, &strand_seq, &seq, max_ed);
+            } else {
+                let mut subs = Vec::new();
 
-            for si in 0..=1 {
+                for si in 0..=1 {
 
-                let occ_prefix: Vec<_> = filter_overlaps(strand_pattern[si].0.find_all(seq, max_ed).collect());
-                let occ_suffix: Vec<_> = filter_overlaps(strand_pattern[si].1.find_all(seq, max_ed).collect());
+                    let occ_prefix: Vec<_> = filter_overlaps(strand_pattern[si].0.find_all(seq, max_ed).collect());
+                    let occ_suffix: Vec<_> = filter_overlaps(strand_pattern[si].1.find_all(seq, max_ed).collect());
 
-                for idx in 0..occ_prefix.len() {
-                    let start = occ_prefix[idx];
-                    let end = if idx < occ_suffix.len() { Some(occ_suffix[idx]) } else { None };
-                    subs.push( (start, end, si) );
+                    for idx in 0..occ_prefix.len() {
+                        let start = occ_prefix[idx];
+                        let end = if idx < occ_suffix.len() { Some(occ_suffix[idx]) } else { None };
+                        subs.push( (start, end, si) );
+                    }
                 }
-            }
 
-            subs.sort_by(|a, b| a.0.0.cmp( & b.0.0 ));
-            let mut count = 0;
-            for (start, end, strand) in subs {
+                subs.sort_by(|a, b| a.0.0.cmp( & b.0.0 ));
+                let mut count = 0;
+                for (start, end, strand) in subs {
 
-                let s = start.1 + 1; // endpoint of front match
-                let e = if let Some(t) = end { t.0 } else { seq.len() };
-                if e < s { continue; }               
-                println!(">{}_{} strand={} start={:?} end={:?}", record.id(), count, strand, start, end);
-                count += 1;
-                let insert = &seq[s..e];
-                println!("{}", std::str::from_utf8(&insert).unwrap());
+                    let s = start.1 + 1; // endpoint of front match
+                    let e = if let Some(t) = end { t.0 } else { seq.len() };
+                    if e < s { continue; }
+                    println!("@{}_{} strand={} start={:?} end={:?}", record.id(), count, strand, start, end);
+                    count += 1;
+                    let subseq = &seq[s..e];
+                    let subqual = &qual[s..e];
+                    println!("{}", std::str::from_utf8(&subseq).unwrap());
+                    println!("+");
+                    println!("{}", std::str::from_utf8(&subqual).unwrap());
+                }
             }
         }
     }
