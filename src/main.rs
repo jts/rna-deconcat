@@ -145,11 +145,14 @@ fn split_reads(input_fastq: &str, keep_match: bool) {
                 for (start, end, strand) in subs {
                     let s = if keep_match { start.0 } else { start.1 + 1 };
 
-                    let e = if let Some(t) = end { 
+                    let mut e = if let Some(t) = end { 
                         if keep_match { t.1 + 1 } else { t.0 } 
                     } else { 
                         seq.len() 
                     };
+
+                    if e >= seq.len() { e = seq.len() - 1; }
+
                     if e < s { continue; }
                     println!("@{}_{} strand={} start={:?} end={:?}", record.id(), count, strand, start, end);
                     count += 1;
