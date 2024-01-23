@@ -13,6 +13,8 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Split { 
+        #[arg(short, long, value_name = "keep_match")]
+        keep_match: bool,
         /*
         #[arg(short, long, value_name = "prefix")]
         prefix: String,
@@ -29,8 +31,8 @@ fn main() {
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Commands::Split { fastq } => {
-            split_reads(fastq);
+        Commands::Split { fastq, keep_match } => {
+            split_reads(fastq, *keep_match);
         }
     }
 }
@@ -102,7 +104,7 @@ fn display_matches(patterns: &mut [(Myers<u64>, Myers<u64>); 2], strand_seq: &[[
     }
 }
 
-fn split_reads(input_fastq: &str) {
+fn split_reads(input_fastq: &str, keep_match: bool) {
     let reader = fastq::Reader::from_file(input_fastq).expect("Could not open input fastq");
     let max_ed = 14;
     let display = false;
@@ -141,9 +143,13 @@ fn split_reads(input_fastq: &str) {
                 subs.sort_by(|a, b| a.0.0.cmp( & b.0.0 ));
                 let mut count = 0;
                 for (start, end, strand) in subs {
+                    let s = if keep_match { start.0 } else { start.1 + 1 };
 
-                    let s = start.1 + 1; // endpoint of front match
-                    let e = if let Some(t) = end { t.0 } else { seq.len() };
+                    let e = if let Some(t) = end { 
+                        if keep_match { t.1 + 1 } else { t.0 } 
+                    } else { 
+                        seq.len() 
+                    };
                     if e < s { continue; }
                     println!("@{}_{} strand={} start={:?} end={:?}", record.id(), count, strand, start, end);
                     count += 1;
